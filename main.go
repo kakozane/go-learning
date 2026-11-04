@@ -12,6 +12,15 @@ type Course struct {
 	Completed bool
 }
 
+type Task struct {
+	Title string
+	Done  bool
+}
+
+type Completer interface {
+	Complete()
+}
+
 func main() {
 
 	courses := []Course{
@@ -95,7 +104,22 @@ func main() {
 	// 	coursePtr.Name = "通过指针修改的课程"
 	// 	fmt.Println("修改后的课程名称为：", coursePtr.Name)
 	// }
-	fmt.Println("原始切片为：", courses)
+	// fmt.Println("原始切片为：", courses)
+
+	demoCourse := Course{
+		ID:   "100",
+		Name: "学习 Go 接口",
+	}
+
+	demoTask := Task{
+		Title: "整理学习笔记",
+	}
+
+	fmt.Println("完成前：", demoCourse.Completed, demoTask.Done)
+
+	completeAll([]Completer{&demoCourse, &demoTask})
+
+	fmt.Println("完成后：", demoCourse.Completed, demoTask.Done)
 }
 
 func addCourse(courses []Course, course Course) []Course {
@@ -159,4 +183,18 @@ func completeCourse(course *Course) {
 
 func (c *Course) Complete() {
 	c.Completed = true
+}
+
+func (t *Task) Complete() {
+	t.Done = true
+}
+
+func completeItem(item Completer) {
+	item.Complete()
+}
+
+func completeAll(items []Completer) {
+	for _, item := range items {
+		item.Complete()
+	}
 }
