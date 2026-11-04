@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
 
 type Course struct {
 	ID        string
@@ -48,27 +52,27 @@ func main() {
 		Completed: false,
 	})
 	// fmt.Print(courses)
-	course, found := findCourseByID(courses, "66")
-	if found {
-		fmt.Println("找到课程：", course.Name)
+	// course, found := findCourseByID(courses, "66")
+	// if found {
+	// 	fmt.Println("找到课程：", course.Name)
+	// } else {
+	// 	fmt.Println("课程不存在")
+	// }
+
+	err, i := updateNameByID(courses, "1", "")
+	if err == nil {
+		fmt.Println("修改成功：", courses[i].Name)
 	} else {
-		fmt.Println("课程不存在")
+		fmt.Println("修改失败:", err)
 	}
 
-	updated, i := updateNameByID(courses, "666", "学习 Go 切片和数组111")
-	if updated {
-		fmt.Println("课程名称更新成功,更新后的名称为：", courses[i].Name)
-	} else {
-		fmt.Println("课程不存在或更新失败")
-	}
-
-	remaining, deleted := deleteCourseByID(courses, "2")
-	if deleted {
-		fmt.Println("课程已删除")
-	} else {
-		fmt.Println("课程不存在")
-	}
-	fmt.Println("当前课程为：", remaining)
+	// remaining, deleted := deleteCourseByID(courses, "2")
+	// if deleted {
+	// 	fmt.Println("课程已删除")
+	// } else {
+	// 	fmt.Println("课程不存在")
+	// }
+	// fmt.Println("当前课程为：", remaining)
 }
 
 func addCourse(courses []Course, course Course) []Course {
@@ -88,14 +92,21 @@ func findCourseByID(courses []Course, id string) (Course, bool) {
 }
 
 // updateNameByID 根据课程 ID 更新课程名称
-func updateNameByID(courses []Course, id string, newName string) (bool, int) {
+func updateNameByID(courses []Course, id string, newName string) (error, int) {
+
+	name := strings.TrimSpace(newName)
+
+	if name == "" {
+		return errors.New("课程名称不能为空"), -1
+	}
+
 	for i, course := range courses {
 		if course.ID == id {
-			courses[i].Name = newName
-			return true, i
+			courses[i].Name = name
+			return nil, i
 		}
 	}
-	return false, -1
+	return errors.New("课程不存在"), -1
 }
 
 // deleteCourseByID 根据课程 ID 删除课程

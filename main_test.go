@@ -50,14 +50,30 @@ func TestCourseLookupAndRename(t *testing.T) {
 	if courses[0].Name != "Original" {
 		t.Fatal("lookup result should be a value copy")
 	}
-	updated, index := updateNameByID(courses, "1", "Renamed")
-	if !updated || index != 0 || courses[0].Name != "Renamed" {
+	err, index := updateNameByID(courses, "1", "  Renamed\t")
+	if err != nil || index != 0 || courses[0].Name != "Renamed" {
 		t.Fatal("rename did not update the original element")
 	}
 	if _, found := findCourseByID(courses, "missing"); found {
 		t.Fatal("missing course was reported as found")
 	}
-	if updated, index := updateNameByID(courses, "missing", "Wrong"); updated || index != -1 || courses[0].Name != "Renamed" {
+	if err, index := updateNameByID(courses, "missing", "Wrong"); err == nil || err.Error() != "课程不存在" || index != -1 || courses[0].Name != "Renamed" {
 		t.Fatal("missing ID should not update any course")
+	}
+}
+
+func TestRenameRejectsBlankName(t *testing.T) {
+	for _, name := range []string{"", " \t\n", "　"} {
+		t.Run(name, func(t *testing.T) {
+			courses := []Course{{ID: "1", Name: "Original", Completed: true}}
+			before := append([]Course(nil), courses...)
+			err, index := updateNameByID(courses, "1", name)
+			if err == nil || err.Error() != "课程名称不能为空" || index != -1 {
+				t.Fatalf("expected blank-name error and -1, got %v and %d", err, index)
+			}
+			if !reflect.DeepEqual(courses, before) {
+				t.Fatal("invalid name must not change course data")
+			}
+		})
 	}
 }
