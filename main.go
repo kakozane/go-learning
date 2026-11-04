@@ -1,15 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 )
 
+// 告诉 JSON 编码器使用什么字段名
 type Course struct {
-	ID        string
-	Name      string
-	Completed bool
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Completed bool   `json:"completed"`
 }
 
 type Task struct {
@@ -36,6 +38,12 @@ func main() {
 		},
 	}
 
+	courses = append(courses, Course{
+		ID:        "3",
+		Name:      "学习 Go 函数",
+		Completed: false,
+	})
+
 	// fmt.Println(len(courses))
 	// fmt.Println(courses[0].Name)
 
@@ -45,21 +53,15 @@ func main() {
 
 	// }
 
-	courses = append(courses, Course{
-		ID:        "3",
-		Name:      "学习 Go 函数",
-		Completed: false,
-	})
+	// course := Course{
+	// 	ID:        "4",
+	// 	Name:      "学习 Go 指针",
+	// 	Completed: false,
+	// }
 
-	course := Course{
-		ID:        "4",
-		Name:      "学习 Go 指针",
-		Completed: false,
-	}
+	// course.Complete()
 
-	course.Complete()
-
-	fmt.Println(course)
+	// fmt.Println(course)
 	// for i := range courses {
 	// 	fmt.Println(courses[i])
 	// }
@@ -106,20 +108,40 @@ func main() {
 	// }
 	// fmt.Println("原始切片为：", courses)
 
-	demoCourse := Course{
-		ID:   "100",
-		Name: "学习 Go 接口",
+	// demoCourse := Course{
+	// 	ID:   "100",
+	// 	Name: "学习 Go 接口",
+	// }
+
+	// demoTask := Task{
+	// 	Title: "整理学习笔记",
+	// }
+
+	// fmt.Println("完成前：", demoCourse.Completed, demoTask.Done)
+
+	// completeAll([]Completer{&demoCourse, &demoTask})
+
+	// fmt.Println("完成后：", demoCourse.Completed, demoTask.Done)
+
+	listData, err := json.Marshal(courses)
+	if err != nil {
+		fmt.Println("JSON 编码失败", err)
+		return
+	}
+	fmt.Println("JSON 编码后的数据：", string(listData))
+
+	var decodedCourses []Course
+
+	err = json.Unmarshal(listData, &decodedCourses)
+	if err != nil {
+		fmt.Println("JSON解码失败", err)
+		return
 	}
 
-	demoTask := Task{
-		Title: "整理学习笔记",
+	for _, course := range decodedCourses {
+		fmt.Println("json解码数据", course.ID, course.Name, course.Completed)
 	}
 
-	fmt.Println("完成前：", demoCourse.Completed, demoTask.Done)
-
-	completeAll([]Completer{&demoCourse, &demoTask})
-
-	fmt.Println("完成后：", demoCourse.Completed, demoTask.Done)
 }
 
 func addCourse(courses []Course, course Course) []Course {
