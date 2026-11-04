@@ -42,29 +42,34 @@ func main() {
 		Completed: false,
 	})
 
+	course := Course{
+		ID:        "4",
+		Name:      "学习 Go 指针",
+		Completed: false,
+	}
+
+	course.Complete()
+
+	fmt.Println(course)
 	// for i := range courses {
 	// 	fmt.Println(courses[i])
 	// }
 
-	courses = addCourse(courses, Course{
-		ID:        "4",
-		Name:      "学习 Go 接口",
-		Completed: false,
-	})
 	// fmt.Print(courses)
-	// course, found := findCourseByID(courses, "66")
+	// course, found := findCourseByID(courses, "1")
 	// if found {
 	// 	fmt.Println("找到课程：", course.Name)
+	// 	course.Name = "修改课程名称"
 	// } else {
 	// 	fmt.Println("课程不存在")
 	// }
 
-	err, i := updateNameByID(courses, "1", "")
-	if err == nil {
-		fmt.Println("修改成功：", courses[i].Name)
-	} else {
-		fmt.Println("修改失败:", err)
-	}
+	// err, i := updateNameByID(courses, "1", "")
+	// if err == nil {
+	// 	fmt.Println("修改成功：", courses[i].Name)
+	// } else {
+	// 	fmt.Println("修改失败:", err)
+	// }
 
 	// remaining, deleted := deleteCourseByID(courses, "2")
 	// if deleted {
@@ -73,6 +78,24 @@ func main() {
 	// 	fmt.Println("课程不存在")
 	// }
 	// fmt.Println("当前课程为：", remaining)
+
+	// 指针练习
+	// course := Course{
+	// 	ID:   "5",
+	// 	Name: "学习 Go 指针",
+	// }
+	// completeCourse(&course)
+
+	// fmt.Println(course.Completed)
+
+	// coursePtr := findCoursePointerByID(courses, "1")
+	// if coursePtr == nil {
+	// 	fmt.Println("课程不存在")
+	// } else {
+	// 	coursePtr.Name = "通过指针修改的课程"
+	// 	fmt.Println("修改后的课程名称为：", coursePtr.Name)
+	// }
+	fmt.Println("原始切片为：", courses)
 }
 
 func addCourse(courses []Course, course Course) []Course {
@@ -90,6 +113,15 @@ func findCourseByID(courses []Course, id string) (Course, bool) {
 	// 没找到的情况
 	return Course{}, false
 }
+
+// func findCoursePointerByID(courses []Course, id string) *Course {
+// 	for i := range courses {
+// 		if courses[i].ID == id {
+// 			return &courses[i]
+// 		}
+// 	}
+// 	return nil
+// }
 
 // updateNameByID 根据课程 ID 更新课程名称
 func updateNameByID(courses []Course, id string, newName string) (error, int) {
@@ -119,4 +151,12 @@ func deleteCourseByID(courses []Course, id string) ([]Course, bool) {
 		}
 	}
 	return courses, false
+}
+
+func completeCourse(course *Course) {
+	course.Completed = true
+}
+
+func (c *Course) Complete() {
+	c.Completed = true
 }
