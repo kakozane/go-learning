@@ -27,6 +27,12 @@ type ResData struct {
 	Message string   `json:"message"`
 }
 
+type FindCourseResData struct {
+	Code    int    `json:"code"`
+	Data    Course `json:"data"`
+	Message string `json:"message"`
+}
+
 type Completer interface {
 	Complete()
 }
@@ -36,17 +42,17 @@ func main() {
 	courses := []Course{
 		{
 			ID:        "1",
-			Name:      "学习 Go 结构体",
+			Name:      "学习Go结构体",
 			Completed: false,
 		},
 		{
 			ID:        "2",
-			Name:      "学习 Go 切片",
+			Name:      "学习Go切片",
 			Completed: false,
 		},
 		{
 			ID:        "3",
-			Name:      "学习 Go 函数",
+			Name:      "学习Go函数",
 			Completed: false,
 		},
 	}
@@ -54,10 +60,19 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /courses", func(w http.ResponseWriter, r *http.Request) {
+		keyword := strings.TrimSpace(r.URL.Query().Get("keyword"))
+
+		filteredCourses := make([]Course, 0)
+		// 把返回的切片重新赋值给 filteredCourses，这样它的长度等信息才会更新。这个和你之前写的添加课程一样：
+		for _, course := range courses {
+			if strings.Contains(course.Name, keyword) {
+				filteredCourses = append(filteredCourses, course)
+			}
+		}
 
 		resData := ResData{
 			Code:    200,
-			Data:    courses,
+			Data:    filteredCourses,
 			Message: "请求成功！",
 		}
 
@@ -68,7 +83,38 @@ func main() {
 			return
 		}
 
-		fmt.Println(string(data))
+		w.Header().Set("Content-Type", "application/json")
+
+		_, err = w.Write(data)
+
+		if err != nil {
+			log.Println("响应写入失败：", err)
+		}
+	})
+
+	mux.HandleFunc("GET /courses/{id}", func(w http.ResponseWriter, r *http.Request) {
+		// 处理获取特定课程的逻辑
+		id := r.PathValue("id")
+
+		course, found := findCourseByID(courses, id)
+
+		if !found {
+			http.Error(w, "课程不存在", http.StatusNotFound)
+			return
+		}
+
+		resData := FindCourseResData{
+			Code:    200,
+			Data:    course,
+			Message: "请求成功！",
+		}
+
+		data, err := json.Marshal(resData)
+
+		if err != nil {
+			http.Error(w, "课程数据编码失败", http.StatusInternalServerError)
+			return
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 
@@ -77,6 +123,7 @@ func main() {
 		if err != nil {
 			log.Println("响应写入失败：", err)
 		}
+
 	})
 
 	fmt.Println("准备启动服务：http://localhost:8080")
@@ -91,16 +138,26 @@ func main() {
 // }
 
 // findCourseByID 根据课程 ID 查找课程
-// func findCourseByID(courses []Course, id string) (Course, bool) {
-// 	for _, course := range courses {
-// 		if course.ID == id {
-// 			// 结束
-// 			return course, true
-// 		}
-// 	}
-// 	// 没找到的情况
-// 	return Course{}, false
-// }
+func findCourseByID(courses []Course, id string) (Course, bool) {
+	for _, course := range courses {
+		if course.ID == id {
+			// 结束
+			return course, true
+		}
+	}
+	// 没找到的情况
+	return Course{}, false
+}
+
+func findCourseByName(courses []Course, name string) (Course, bool) {
+
+	for _, course := range courses {
+		if course.Name == name {
+			return course, true
+		}
+	}
+	return Course{}, false
+}
 
 // func findCoursePointerByID(courses []Course, id string) *Course {
 // 	for i := range courses {
