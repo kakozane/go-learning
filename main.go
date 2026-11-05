@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
+	"sync"
 )
 
 // 告诉 JSON 编码器使用什么字段名
@@ -37,6 +39,10 @@ type Completer interface {
 	Complete()
 }
 
+type CreateCourseRequest struct {
+	Name string `json:"name"`
+}
+
 func main() {
 
 	courses := []Course{
@@ -57,11 +63,16 @@ func main() {
 		},
 	}
 
+	nextID := 4
+	var coursesMu sync.Mutex
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /courses", func(w http.ResponseWriter, r *http.Request) {
+		// 取得锁，其他使用同一把锁的请求需要等待。
+		coursesMu.Lock()
+		defer coursesMu.Unlock()
 		keyword := strings.TrimSpace(r.URL.Query().Get("keyword"))
-
 		filteredCourses := make([]Course, 0)
 		// 把返回的切片重新赋值给 filteredCourses，这样它的长度等信息才会更新。这个和你之前写的添加课程一样：
 		for _, course := range courses {
@@ -93,6 +104,9 @@ func main() {
 	})
 
 	mux.HandleFunc("GET /courses/{id}", func(w http.ResponseWriter, r *http.Request) {
+		// 取得锁，其他使用同一把锁的请求需要等待。
+		coursesMu.Lock()
+		defer coursesMu.Unlock()
 		// 处理获取特定课程的逻辑
 		id := r.PathValue("id")
 
@@ -124,6 +138,63 @@ func main() {
 			log.Println("响应写入失败：", err)
 		}
 
+	})
+
+	mux.HandleFunc("POST /courses", func(w http.ResponseWriter, r *http.Request) {
+		// 1. 将请求体中的 JSON 解码到 req
+
+		// var req CreateCourseRequest
+
+		req := CreateCourseRequest{}
+
+		// err := json.NewDecoder(r.Body).Decode(&req)
+		// 用变量保存这个解码器
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&req)
+
+		if err != nil {
+			http.Error(w, "请求体必须是合法的课程 JSON", http.StatusBadRequest)
+			return
+		}
+		// 2. 校验课程名称
+		name := strings.TrimSpace(req.Name)
+		if name == "" {
+			http.Error(w, "课程名称不能为空", http.StatusBadRequest)
+			return
+		}
+		// 3. 修改共享数据前先加锁
+		coursesMu.Lock()
+		defer coursesMu.Unlock()
+
+		course := Course{
+			ID:        strconv.Itoa(nextID),
+			Name:      name,
+			Completed: false,
+		}
+
+		courses = append(courses, course)
+		nextID++
+		// 4. 返回新增的课程
+		resData := FindCourseResData{
+			Code:    201,
+			Data:    course,
+			Message: "课程创建成功！",
+		}
+
+		data, err := json.Marshal(resData)
+		if err != nil {
+			http.Error(w, "课程数据编码失败", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		w.WriteHeader(http.StatusCreated)
+
+		_, err = w.Write(data)
+		if err != nil {
+			log.Println("响应写入失败：", err)
+		}
 	})
 
 	fmt.Println("准备启动服务：http://localhost:8080")
