@@ -197,6 +197,68 @@ func main() {
 		}
 	})
 
+	mux.HandleFunc("PATCH /courses/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+
+		if id == "" {
+			http.Error(w, "id错误", http.StatusBadRequest)
+			return
+		}
+
+		var req Course
+
+		Decoder := json.NewDecoder(r.Body)
+
+		err := Decoder.Decode(&req)
+
+		if err != nil {
+			http.Error(w, "解码失败", http.StatusBadRequest)
+			return
+		}
+
+		name := strings.TrimSpace(req.Name)
+
+		if name == "" {
+			http.Error(w, "课程名称不能为空", http.StatusBadRequest)
+			return
+		}
+
+		coursesMu.Lock()
+		defer coursesMu.Unlock()
+
+		currentCourse := findCoursePointerByID(courses, id)
+
+		if currentCourse == nil {
+			http.Error(w, "课程不存在", http.StatusNotFound)
+			return
+		}
+
+		currentCourse.Name = name
+
+		resData := FindCourseResData{
+			Code:    200,
+			Data:    *currentCourse,
+			Message: "修改成功",
+		}
+
+		data, err := json.Marshal(resData)
+
+		if err != nil {
+			http.Error(w, "课程数据编码失败", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		w.WriteHeader(200)
+
+		_, err = w.Write(data)
+
+		if err != nil {
+			log.Println("响应写入失败", err)
+		}
+	})
+
 	fmt.Println("准备启动服务：http://localhost:8080")
 	err := http.ListenAndServe("localhost:8080", mux)
 	if err != nil {
@@ -230,14 +292,14 @@ func findCourseByName(courses []Course, name string) (Course, bool) {
 	return Course{}, false
 }
 
-// func findCoursePointerByID(courses []Course, id string) *Course {
-// 	for i := range courses {
-// 		if courses[i].ID == id {
-// 			return &courses[i]
-// 		}
-// 	}
-// 	return nil
-// }
+func findCoursePointerByID(courses []Course, id string) *Course {
+	for i := range courses {
+		if courses[i].ID == id {
+			return &courses[i]
+		}
+	}
+	return nil
+}
 
 // updateNameByID 根据课程 ID 更新课程名称
 func updateNameByID(courses []Course, id string, newName string) (error, int) {
