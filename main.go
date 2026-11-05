@@ -259,6 +259,31 @@ func main() {
 		}
 	})
 
+	mux.HandleFunc("DELETE /courses/{id}", func(w http.ResponseWriter, r *http.Request) {
+
+		id := r.PathValue("id")
+
+		if id == "" {
+			http.Error(w, "id错误或不能为空", http.StatusBadRequest)
+			return
+		}
+
+		coursesMu.Lock()
+		defer coursesMu.Unlock()
+
+		remaining, deleted := deleteCourseByID(courses, id)
+
+		if !deleted {
+			http.Error(w, "课程不存在", http.StatusNotFound)
+			return
+		}
+
+		courses = remaining
+
+		w.WriteHeader(http.StatusNoContent)
+
+	})
+
 	fmt.Println("准备启动服务：http://localhost:8080")
 	err := http.ListenAndServe("localhost:8080", mux)
 	if err != nil {
