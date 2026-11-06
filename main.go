@@ -43,6 +43,10 @@ type CreateCourseRequest struct {
 	Name string `json:"name"`
 }
 
+type UpdateCourseCompletedRequest struct {
+	Completed *bool `json:"completed"`
+}
+
 func main() {
 
 	courses := []Course{
@@ -281,6 +285,67 @@ func main() {
 		courses = remaining
 
 		w.WriteHeader(http.StatusNoContent)
+
+	})
+
+	mux.HandleFunc("PATCH /courses/{id}/completed", func(w http.ResponseWriter, r *http.Request) {
+
+		id := r.PathValue("id")
+
+		// var course Course
+		req := UpdateCourseCompletedRequest{}
+
+		decoder := json.NewDecoder(r.Body)
+
+		err := decoder.Decode(&req)
+
+		if err != nil {
+			http.Error(w, "请求数据格式错误", http.StatusBadRequest)
+			return
+		}
+
+		if req.Completed == nil {
+			http.Error(w, "必须提供完成状态", http.StatusBadRequest)
+			return
+		}
+		if id == "" {
+			http.Error(w, "id不存在或者错误", http.StatusBadRequest)
+			return
+		}
+
+		coursesMu.Lock()
+		defer coursesMu.Unlock()
+
+		c := findCoursePointerByID(courses, id)
+
+		if c == nil {
+			http.Error(w, "课程不存在！", http.StatusNotFound)
+			return
+		}
+		// (*c).Completed
+		c.Completed = *req.Completed
+
+		resData := FindCourseResData{
+			Code:    0,
+			Data:    *c,
+			Message: "修改成功",
+		}
+
+		data, err := json.Marshal(resData)
+
+		if err != nil {
+			http.Error(w, "编码失败", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+
+		w.WriteHeader(http.StatusOK)
+
+		_, err = w.Write(data)
+
+		if err != nil {
+			log.Println("响应写入失败：", err)
+		}
 
 	})
 
